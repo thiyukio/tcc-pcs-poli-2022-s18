@@ -5,6 +5,8 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.media.AudioManager;
+import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.TextView;
@@ -14,6 +16,8 @@ import android.view.View;
 
 import com.example.filterproject.databinding.ActivityMainBinding;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+
+import java.io.IOException;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -37,8 +41,19 @@ public class MainActivity extends AppCompatActivity {
                 Log.d("myTag", message);
 
                 // Alterar o código restante do callback para outra coisa
+                try {
+                    func(uri);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
                 binding.sampleText.setText(message);
             });
+
+    public void func(Uri uri) throws IOException {
+        MediaPlayer mp = MediaPlayer.create(getApplicationContext(), uri);
+        mp.setAudioStreamType(AudioManager.STREAM_MUSIC);
+        mp.start();
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
