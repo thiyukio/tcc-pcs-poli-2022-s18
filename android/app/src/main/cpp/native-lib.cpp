@@ -20,3 +20,11 @@ Java_com_example_filterproject_MainActivity_test(JNIEnv *env, jobject thisObject
     env->SetFloatArrayRegion(returnArray, 0, 2, array1);
     return returnArray;
 }
+
+extern "C"
+JNIEXPORT jbyteArray JNICALL
+Java_com_example_filterproject_MainActivity_amplify(JNIEnv *env, jobject thisObject, jbyteArray input, int bufferSize) {
+    jbyteArray returnArray = input;
+    for
+    return returnArray;
+}
