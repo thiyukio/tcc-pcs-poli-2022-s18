@@ -59,7 +59,7 @@ public class MainActivity extends AppCompatActivity {
 
                 Log.d("tag2", uri.getPath());
 
-                String f = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath() + "/beep-06.wav";
+                String f = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath() + "/t.wav";
 
                 File file2 = new File(f);
                 playWav(file2);
@@ -74,7 +74,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void playWav(File file){
         int minBufferSize = AudioTrack.getMinBufferSize(88200, AudioFormat.CHANNEL_CONFIGURATION_MONO, AudioFormat.ENCODING_PCM_16BIT);
-        int bufferSize = 512;
+        int bufferSize = 16;
         AudioTrack at = new AudioTrack(AudioManager.STREAM_MUSIC, 88200, AudioFormat.CHANNEL_CONFIGURATION_MONO, AudioFormat.ENCODING_PCM_16BIT, minBufferSize, AudioTrack.MODE_STREAM);
         String filepath = Environment.getExternalStorageDirectory().getAbsolutePath();
 
@@ -83,7 +83,6 @@ public class MainActivity extends AppCompatActivity {
         try {
             FileInputStream fin = new FileInputStream(file);
             DataInputStream dis = new DataInputStream(fin);
-
             at.play();
             while((i = dis.read(s, 0, bufferSize)) > -1){
                 //for (int j = 0; j < s.length; j++) {
@@ -94,7 +93,17 @@ public class MainActivity extends AppCompatActivity {
                     //Log.d("2", String.valueOf(b2));
                //     s[j] = b2;
                // }
-                at.write(amplify(s, bufferSize), 0, i);
+                float float_arr[] = new float[s.length];
+                float float_amp[] = new float[s.length];
+                byte s_amp[] = new byte[s.length];
+                for (int j = 0; j < s.length; j++) {
+                    float_arr[j] = s[j];
+                }
+                float_amp = amplify(float_arr, bufferSize);
+                for (int j = 0; j < s.length; j++) {
+                    s_amp[j] = (byte) float_amp[j];
+                }
+                at.write(s_amp, 0, i);
 
             }
             at.stop();
@@ -144,5 +153,5 @@ public class MainActivity extends AppCompatActivity {
      * which is packaged with this application.
      */
     public native float[] test();
-    public native byte[] amplify(byte[] input, int bufferSize);
+    public native float[] amplify(float[] input, int bufferSize);
 }

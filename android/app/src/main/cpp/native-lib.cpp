@@ -22,9 +22,13 @@ Java_com_example_filterproject_MainActivity_test(JNIEnv *env, jobject thisObject
 }
 
 extern "C"
-JNIEXPORT jbyteArray JNICALL
-Java_com_example_filterproject_MainActivity_amplify(JNIEnv *env, jobject thisObject, jbyteArray input, int bufferSize) {
-    jbyteArray returnArray = input;
-    for
+JNIEXPORT jfloatArray JNICALL
+Java_com_example_filterproject_MainActivity_amplify(JNIEnv *env, jobject thisObject, jfloatArray input, int bufferSize) {
+    jfloatArray returnArray = input;
+    jfloat *array = env->GetFloatArrayElements(returnArray, NULL);
+    for(int i=0; i < bufferSize; i++){
+        array[i]=array[i]*0.2;
+    }
+    env->SetFloatArrayRegion(returnArray, 0, bufferSize, array);
     return returnArray;
 }
