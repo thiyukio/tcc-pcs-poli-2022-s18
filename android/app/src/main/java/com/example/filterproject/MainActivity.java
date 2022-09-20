@@ -59,9 +59,10 @@ public class MainActivity extends AppCompatActivity {
 
                 Log.d("tag2", uri.getPath());
 
-                String f = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath() + "/t.wav";
+                String f = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath() + "/beep.wav";
 
                 File file2 = new File(f);
+                Log.d("nome", file2.getAbsolutePath());
                 playWav(file2);
                 binding.sampleText.setText(message);
             });
@@ -74,16 +75,19 @@ public class MainActivity extends AppCompatActivity {
 
     public void playWav(File file){
         int minBufferSize = AudioTrack.getMinBufferSize(88200, AudioFormat.CHANNEL_CONFIGURATION_MONO, AudioFormat.ENCODING_PCM_16BIT);
-        int bufferSize = 16;
+        int bufferSize = 512;
         AudioTrack at = new AudioTrack(AudioManager.STREAM_MUSIC, 88200, AudioFormat.CHANNEL_CONFIGURATION_MONO, AudioFormat.ENCODING_PCM_16BIT, minBufferSize, AudioTrack.MODE_STREAM);
         String filepath = Environment.getExternalStorageDirectory().getAbsolutePath();
 
         int i = 0;
         byte[] s = new byte[bufferSize];
         try {
+
             FileInputStream fin = new FileInputStream(file);
+            Log.d("nome2",file.getName());
             DataInputStream dis = new DataInputStream(fin);
             at.play();
+
             while((i = dis.read(s, 0, bufferSize)) > -1){
                 //for (int j = 0; j < s.length; j++) {
                     //Log.d("1", String.valueOf(s[j]));
@@ -93,6 +97,7 @@ public class MainActivity extends AppCompatActivity {
                     //Log.d("2", String.valueOf(b2));
                //     s[j] = b2;
                // }
+
                 float float_arr[] = new float[s.length];
                 float float_amp[] = new float[s.length];
                 byte s_amp[] = new byte[s.length];
@@ -103,6 +108,7 @@ public class MainActivity extends AppCompatActivity {
                 for (int j = 0; j < s.length; j++) {
                     s_amp[j] = (byte) float_amp[j];
                 }
+
                 at.write(s_amp, 0, i);
 
             }
@@ -113,6 +119,7 @@ public class MainActivity extends AppCompatActivity {
 
         } catch (FileNotFoundException e) {
             // TODO
+            Log.d("erro",e.toString());
             e.printStackTrace();
         } catch (IOException e) {
             // TODO
