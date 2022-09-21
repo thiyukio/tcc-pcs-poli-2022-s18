@@ -27,4 +27,13 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:srcCompat="@android:drawable/ic_menu_add" />
 
+    <ImageButton
+        android:id="@+id/playButton"
+        android:layout_width="85dp"
+        android:layout_height="75dp"
+        android:background="#000000"
+        app:srcCompat="@android:drawable/ic_media_play"
+        tools:layout_editor_absoluteX="163dp"
+        tools:layout_editor_absoluteY="485dp" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -5,9 +5,15 @@
 
 cmake_minimum_required(VERSION 3.18.1)
 
+# Configura o diretório do OBOE
+get_filename_component(PARENT_DIR ../../../../../.. ABSOLUTE)
+set(OBOE_DIR ${PARENT_DIR}/oboe)
+
+include_directories(google)
+
 # Declares and names the project.
 
-project("filterproject")
+#project("filterproject")
 
 # Creates and names a library, sets it as either STATIC
 # or SHARED, and provides the relative paths to its source code.
@@ -15,13 +21,36 @@ project("filterproject")
 # Gradle automatically packages shared libraries with your APK.
 
 add_library( # Sets the name of the library.
-        filterproject
-
+        native-lib
         # Sets the library as a shared library.
         SHARED
 
         # Provides a relative path to your source file(s).
-        native-lib.cpp)
+        native-lib.cpp
+        Filter.h
+        Filter.cpp
+        Constants.h
+
+        # audio engine
+        google/audio/Player.h
+        google/audio/Player.cpp
+        google/audio/Mixer.h
+        google/audio/NDKExtractor.cpp
+        google/audio/NDKExtractor.h
+        # google/audio/ExternalFileDataSource.cpp
+        google/audio/AAssetDataSource.cpp
+        google/audio/AAssetDataSource.h
+        google/audio/DataSource.h
+        # google/audio/FFMpegExtractor.cpp
+        # google/audio/FFMpegExtractor.h
+        google/audio/IRenderableAudio.h
+
+        # utility functions
+        google/utils/logging.h
+        google/utils/UtilityFunctions.h
+        google/utils/UtilityFunctions.cpp
+        google/utils/LockFreeQueue.h
+        )
 
 # Searches for a specified prebuilt library and stores the path as a
 # variable. Because CMake includes system libraries in the search path by
@@ -36,13 +65,29 @@ find_library( # Sets the name of the path variable.
         # you want CMake to locate.
         log)
 
+# Adiciona subdiretório do projeto
+add_subdirectory(${OBOE_DIR} ./oboe)
+include_directories(${OBOE_DIR}/include)
+# find_package (oboe REQUIRED CONFIG)
+
 # Specifies libraries CMake should link to your target library. You
 # can link multiple libraries, such as libraries you define in this
 # build script, prebuilt third-party libraries, or system libraries.
 
+
 target_link_libraries( # Specifies the target library.
-        filterproject
+        native-lib
 
         # Links the target library to the log library
         # included in the NDK.
-        ${log-lib})
+        ${log-lib}
+
+        oboe
+
+        android
+        mediandk)
+
+add_definitions(-DUSE_FFMPEG=0)
+
+target_compile_options(native-lib
+        PRIVATE -std=c++17 -Wall -Werror)
