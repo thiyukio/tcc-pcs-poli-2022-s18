@@ -14,6 +14,7 @@
 
 #include "google/audio/Player.h"
 #include "google/audio/AAssetDataSource.h"
+#include "google/audio/AFileDataSource.h"
 #include "utils/LockFreeQueue.h"
 #include "utils/UtilityFunctions.h"
 #include "Constants.h"
@@ -22,7 +23,7 @@ using namespace oboe;
 
 class Filter : public AudioStreamDataCallback, AudioStreamErrorCallback {
 public:
-    explicit Filter(AAssetManager&);
+    explicit Filter(int fd, int length);
     void start();
     void stop();
 
@@ -34,7 +35,8 @@ public:
     void onErrorAfterClose(AudioStream *oboeStream, Result error) override;
 
 private:
-    AAssetManager& mAssetManager;
+    // AAssetManager& mAssetManager;
+    int fd, length;
     std::shared_ptr<AudioStream> mAudioStream;
     std::unique_ptr<Player> mPlayer;
     Mixer mMixer;

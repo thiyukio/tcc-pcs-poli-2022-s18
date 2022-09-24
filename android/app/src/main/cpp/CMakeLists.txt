@@ -25,12 +25,6 @@ add_library( # Sets the name of the library.
         # Sets the library as a shared library.
         SHARED
 
-        # Provides a relative path to your source file(s).
-        native-lib.cpp
-        Filter.h
-        Filter.cpp
-        Constants.h
-
         # audio engine
         google/audio/Player.h
         google/audio/Player.cpp
@@ -38,6 +32,8 @@ add_library( # Sets the name of the library.
         google/audio/NDKExtractor.cpp
         google/audio/NDKExtractor.h
         # google/audio/ExternalFileDataSource.cpp
+        google/audio/AFileDataSource.cpp
+        google/audio/AFileDataSource.h
         google/audio/AAssetDataSource.cpp
         google/audio/AAssetDataSource.h
         google/audio/DataSource.h
@@ -45,11 +41,18 @@ add_library( # Sets the name of the library.
         # google/audio/FFMpegExtractor.h
         google/audio/IRenderableAudio.h
 
+
         # utility functions
         google/utils/logging.h
         google/utils/UtilityFunctions.h
         google/utils/UtilityFunctions.cpp
         google/utils/LockFreeQueue.h
+
+        # Provides a relative path to your source file(s).
+        native-lib.cpp
+        Filter.h
+        Filter.cpp
+        Constants.h
         )
 
 # Searches for a specified prebuilt library and stores the path as a
@@ -57,6 +60,8 @@ add_library( # Sets the name of the library.
 # default, you only need to specify the name of the public NDK library
 # you want to add. CMake verifies that the library exists before
 # completing its build.
+
+
 
 find_library( # Sets the name of the path variable.
         log-lib

@@ -15,17 +15,27 @@ extern "C" {
 
 std::unique_ptr<Filter> filter;
 
+//JNIEXPORT void JNICALL
+//Java_com_example_filterproject_MainActivity_native_1onStart(JNIEnv *env,
+//                                                            jobject thiz,
+//                                                            jobject jAssetManager) {
+//    AAssetManager *assetManager = AAssetManager_fromJava(env, jAssetManager);
+//    if (assetManager == nullptr) {
+//        LOGE("Could not obtain the AAssetManager");
+//        return;
+//    }
+//
+//    filter = std::make_unique<Filter>(*assetManager);
+//}
 JNIEXPORT void JNICALL
 Java_com_example_filterproject_MainActivity_native_1onStart(JNIEnv *env,
                                                             jobject thiz,
-                                                            jobject jAssetManager) {
-    AAssetManager *assetManager = AAssetManager_fromJava(env, jAssetManager);
-    if (assetManager == nullptr) {
-        LOGE("Could not obtain the AAssetManager");
-        return;
-    }
+                                                            jint jfd,
+                                                            jint jlength) {
+    int fd = (int) jfd;
+    int length = (int) jlength;
 
-    filter = std::make_unique<Filter>(*assetManager);
+    filter = std::make_unique<Filter>(fd, length);
 }
 
 JNIEXPORT void JNICALL

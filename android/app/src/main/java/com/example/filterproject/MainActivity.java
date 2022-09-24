@@ -61,20 +61,6 @@ public class MainActivity extends AppCompatActivity {
                 this.uri = uri;
                 Log.d("myTag", message);
 
-                ParcelFileDescriptor inputPFD;
-                try {
-                    /*
-                     * Get the content resolver instance for this context, and use it
-                     * to get a ParcelFileDescriptor for the file.
-                     */
-                    inputPFD = getContentResolver().openFileDescriptor(uri, "r");
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
-                    Log.e("MainActivity", "File not found.");
-                    return;
-                }
-                // Get a regular file descriptor for the file
-                this.fd = inputPFD;
 
                 // Alterar o código restante do callback para outra coisa
 //                try {
@@ -85,11 +71,11 @@ public class MainActivity extends AppCompatActivity {
                 binding.sampleText.setText(message);
             });
 
-    public void func(Uri uri) throws IOException {
-        MediaPlayer mp = MediaPlayer.create(getApplicationContext(), uri);
-        mp.setAudioStreamType(AudioManager.STREAM_MUSIC);
-        mp.start();
-    }
+//    public void func(Uri uri) throws IOException {
+//        MediaPlayer mp = MediaPlayer.create(getApplicationContext(), uri);
+//        mp.setAudioStreamType(AudioManager.STREAM_MUSIC);
+//        mp.start();
+//    }
 
     protected void onResume() {
         super.onResume();
@@ -108,13 +94,32 @@ public class MainActivity extends AppCompatActivity {
 //                // native_onStart(this.fd.getFd());
 //
 //            }
+            ParcelFileDescriptor inputPFD;
+            try {
+                /*
+                 * Get the content resolver instance for this context, and use it
+                 * to get a ParcelFileDescriptor for the file.
+                 */
+                inputPFD = getContentResolver().openFileDescriptor(uri, "r");
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+                Log.e("MainActivity", "File not found.");
+                return;
+            }
+            // Get a regular file descriptor for the file
+            this.fd = inputPFD;
+
+            setDefaultStreamValues(this);
+            native_onStart(this.fd.getFd(), (int) this.fd.getStatSize());
             native_onResume();
         }
     }
 
     protected void onPause(){
         super.onPause();
-        native_onStop();
+        if(uri != null) {
+            native_onStop();
+        }
     }
 
     @Override
@@ -140,8 +145,8 @@ public class MainActivity extends AppCompatActivity {
         // tv.setText(Float.toString(test()[0]) + ", " + Float.toString(test()[1]));
         // tv.setText(test().toString());
 
-        setDefaultStreamValues(this);
-        native_onStart(getAssets());
+//        setDefaultStreamValues(this);
+//        native_onStart(getAssets());
     }
 
     static void setDefaultStreamValues(Context context) {
@@ -164,7 +169,8 @@ public class MainActivity extends AppCompatActivity {
     // public native float[] test();
     private static native void native_setDefaultStreamValues(int defaultSampleRate,
                                                              int defaultFramesPerBurst);
-    private native void native_onStart(AssetManager assetManager);
+//    private native void native_onStart(AssetManager assetManager);
+    private native void native_onStart(int fd, int length);
     private native void native_onStop();
 
     private native void native_onResume();

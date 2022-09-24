@@ -8,7 +8,7 @@
 
 #include "Filter.h"
 
-Filter::Filter(AAssetManager &assetManager): mAssetManager(assetManager) {
+Filter::Filter(int fd, int length): fd(fd), length(length) {
 }
 
 void Filter::load() {
@@ -100,8 +100,11 @@ bool Filter::setupAudioSources() {
     };
 
     // Create a data source and player for the clap sound
-    std::shared_ptr<AAssetDataSource> mSource {
-            AAssetDataSource::newFromCompressedAsset(mAssetManager, kBackingTrackFilename, targetProperties)
+//    std::shared_ptr<AAssetDataSource> mSource {
+//            AAssetDataSource::newFromCompressedAsset(mAssetManager, kBackingTrackFilename, targetProperties)
+//    };
+    std::shared_ptr<AFileDataSource> mSource {
+            AFileDataSource::newFromFile(fd, length, targetProperties)
     };
     if (mSource == nullptr){
         LOGE("Could not load source data for clap sound");
