@@ -59,7 +59,7 @@ public class MainActivity extends AppCompatActivity {
 
                 Log.d("tag2", uri.getPath());
 
-                String f = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath() + "/beep.wav";
+                String f = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath() + "/Po.wav";
 
                 File file2 = new File(f);
                 Log.d("nome", file2.getAbsolutePath());
@@ -87,7 +87,8 @@ public class MainActivity extends AppCompatActivity {
             Log.d("nome2",file.getName());
             DataInputStream dis = new DataInputStream(fin);
             at.play();
-
+            float float_arr2[] = new float[s.length];
+            float h[]= {-0.0978f, 0.0877f, 0.0729f, 0.0698f, 0.0726f, 0.0780f, 0.0843f, 0.0897f, 0.0938f, 0.0961f, 0.0961f, 0.0938f, 0.0897f, 0.0843f, 0.0780f, 0.0726f, 0.0698f, 0.0729f, 0.0877f, -0.0978f};
             while((i = dis.read(s, 0, bufferSize)) > -1){
                 //for (int j = 0; j < s.length; j++) {
                     //Log.d("1", String.valueOf(s[j]));
@@ -99,12 +100,15 @@ public class MainActivity extends AppCompatActivity {
                // }
 
                 float float_arr[] = new float[s.length];
+
                 float float_amp[] = new float[s.length];
                 byte s_amp[] = new byte[s.length];
+
                 for (int j = 0; j < s.length; j++) {
                     float_arr[j] = s[j];
                 }
-                float_amp = amplify(float_arr, bufferSize);
+                float_amp = amplify(float_arr, float_arr2, h, bufferSize);
+                float_arr2=float_arr;
                 for (int j = 0; j < s.length; j++) {
                     s_amp[j] = (byte) float_amp[j];
                 }
@@ -160,5 +164,6 @@ public class MainActivity extends AppCompatActivity {
      * which is packaged with this application.
      */
     public native float[] test();
-    public native float[] amplify(float[] input, int bufferSize);
+    public native float[] amplify(float[] input, float[
+            ] input2, float[] h, int bufferSize);
 }
