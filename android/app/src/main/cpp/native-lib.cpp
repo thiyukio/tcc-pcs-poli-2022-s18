@@ -25,24 +25,26 @@ extern "C"
 JNIEXPORT jfloatArray JNICALL
 Java_com_example_filterproject_MainActivity_amplify(JNIEnv *env, jobject thisObject, jfloatArray input, jfloatArray input2, jfloatArray haux, int bufferSize) {
     jfloatArray returnArray = input;
-    jfloat *array = env->GetFloatArrayElements(returnArray, NULL);
-    jfloatArray returnArray2 = input2;
-    jfloat *array2 = env->GetFloatArrayElements(returnArray2, NULL);
-    jfloatArray aux1 = env->NewFloatArray(2*bufferSize);
-    jfloat *array_total = env->GetFloatArrayElements(aux1,NULL);
-    jfloat *saida = env->GetFloatArrayElements(returnArray,NULL);
-    jfloatArray aux2 = env->NewFloatArray(20);
-    jfloatArray haux2 = haux;
-    jfloat *h = env->GetFloatArrayElements(haux2,NULL);
+    jfloat *array = env->GetFloatArrayElements(input, NULL);
+    jfloat *array2 = env->GetFloatArrayElements(input2, NULL);
+    jfloat janela[20];
+    jfloat *h = env->GetFloatArrayElements(haux,NULL);
+    jint final_aux = bufferSize-1;
+    jfloat yaux =0;
+    jfloat saida[bufferSize];
 
-    for(int i = 0; i < bufferSize; i++){
-        array_total[i]=array2[i];
-        array_total[i+bufferSize]=array[i];
+    for(int i = 0; i < final_aux; i++){
+        janela[i]=array2[i+1];
     }
-    for(int i=bufferSize; i < 2*bufferSize; i++){
-        //array[i]=array[i]*0.2;
+
+    for(int i=0; i < bufferSize; i++){
+        janela[final_aux]=array[i];
         for(int j=0; j < 20;j++){
-            saida[i]=saida[i]+h[j]*saida[i-j];
+            yaux=yaux+h[j]*janela[19-j];
+        }
+        saida[i] = yaux;
+        for(int k = 0; k < 20; k++){
+            janela[k]=janela[k+1];
         }
     }
     env->SetFloatArrayRegion(returnArray, 0, bufferSize, saida);
