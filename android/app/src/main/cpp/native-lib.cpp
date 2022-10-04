@@ -1,7 +1,7 @@
 #include <jni.h>
 #include <iostream>
 #include <string>
-
+#include <android/log.h>
 extern "C" JNIEXPORT jstring JNICALL
 Java_com_example_filterproject_MainActivity_stringFromJNI(
         JNIEnv* env,
@@ -30,20 +30,22 @@ Java_com_example_filterproject_MainActivity_amplify(JNIEnv *env, jobject thisObj
     jfloat janela[20];
     jfloat *h = env->GetFloatArrayElements(haux,NULL);
     jint final_aux = bufferSize-1;
-    jfloat yaux =0;
+    jfloat yaux =0.0f;
     jfloat saida[bufferSize];
 
-    for(int i = 0; i < final_aux; i++){
-        janela[i]=array2[i+1];
+    for(int i = 0; i < 19; i++){
+        janela[i]=array2[bufferSize-19+i];
     }
 
     for(int i=0; i < bufferSize; i++){
-        janela[final_aux]=array[i];
+        janela[19]=array[i];
+        yaux=0.0f;
         for(int j=0; j < 20;j++){
+            //__android_log_print(ANDROID_LOG_DEBUG, "TEST", strsignal(j));
             yaux=yaux+h[j]*janela[19-j];
         }
         saida[i] = yaux;
-        for(int k = 0; k < 20; k++){
+        for(int k = 0; k < 19; k++){
             janela[k]=janela[k+1];
         }
     }
