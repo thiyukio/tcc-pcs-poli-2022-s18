@@ -6,16 +6,16 @@ import java.util.Arrays;
 
 public class IIRFilter {
 
-    public IIRFilter(float a_[], float b_[]) {
+    public IIRFilter(double a_[], double b_[]) {
         // initialize memory elements
         N = Math.max(a_.length, b_.length);
-        x = new float[N]; y = new float[N]; m = 0;
+        x = new double[N]; y = new double[N]; m = 0;
         for (int i = 0; i < x.length; i++) {
             x[i] = 0.0f;
             y[i] = 0.0f;
         }
         // copy filter coefficients
-        a = new float[N];
+        a = new double[N];
         int i = 0;
         for (; i < a_.length; i++) {
             a[i] = a_[i];
@@ -23,7 +23,7 @@ public class IIRFilter {
         for (; i < N; i++) {
             a[i] = 0.0f;
         }
-        b = new float[N];
+        b = new double[N];
         i = 0;
         for (; i < b_.length; i++) {
             b[i] = b_[i];
@@ -36,40 +36,30 @@ public class IIRFilter {
     // Filter samples from input buffer, and store result in output buffer.
     // Implementation based on Direct Form II.
     // Works similar to matlab's "output = filter(b,a,input)" command
-    public void process(float input[], float output[]) {
+    public void process(double input[], float output[]) {
         for (int i = 0; i < input.length; i++) {
-            /*
-            for(int j = 0; j< (x.length-1);j++){
-                x[j]=x[j+1];
-                y[j]=y[j+1];
-            }
-            x[x.length]=input[i];
-            yaux = b[0]*x[N-1];
-            for(int j = 1; j < x.length; j++){
-                yaux+=b[j]*x[N-j-1] - a[k]*y[N-j-1];
-            }
-            y[N-1]
-*/
 
             x[m] = input[i];
             yaux = b[0]*x[m];
             k = 1;
             while(k <= m)
             {
-                yaux = yaux + b[k]*x[m-k] - a[k]*y[m-k];
+                yaux += b[k]*x[m-k] - a[k]*y[m-k];
                 k++;
             }
             while(k < N)
             {
-                yaux = yaux + b[k]*x[m+N-k] - a[k]*y[m+N-k];
+                yaux += b[k]*x[m+N-k] - a[k]*y[m+N-k];
                 k++;
             }
             y[m] = yaux;
-            output[i] = yaux;
+            output[i] = (float )yaux;
 
             m++;
-            if (m >= N)
+            if (m >= N)  //m = (m mod N);
             {
+                //Log.i("audioFloats1", Arrays.toString(x));
+                //Log.i("audioFloats2", Arrays.toString(y));
                 m = 0;
             }
             /*
@@ -97,12 +87,12 @@ public class IIRFilter {
         m++;
     }
 
-    private float[] a;
-    private float[] b;
+    private double[] a;
+    private double[] b;
     private int m;
     int N;
-    private float yaux;
-    private float[] x;
-    private float[] y;
+    private double yaux;
+    private double[] x;
+    private double[] y;
     int k;
 }
