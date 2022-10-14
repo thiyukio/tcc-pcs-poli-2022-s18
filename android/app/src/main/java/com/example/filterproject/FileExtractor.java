@@ -1,32 +1,40 @@
 package com.example.filterproject;
 
-import static android.media.AudioFormat.*;
-
 import android.content.Context;
-import android.media.AudioFormat;
 import android.media.MediaCodec;
 import android.media.MediaCodecList;
 import android.media.MediaExtractor;
 import android.media.MediaFormat;
 import android.net.Uri;
-import android.provider.MediaStore;
 import android.util.Log;
 
 import java.io.FileDescriptor;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public class FileExtractor {
-    private MediaExtractor mExtractor;
+    public enum StateEnum {
+        UNINITIALIZED,
+        INITIALIZED,
+        EXECUTING,
+    }
+    volatile public StateEnum mState = StateEnum.UNINITIALIZED;
+
+    volatile private MediaExtractor mExtractor;
     private MediaFormat mFormat;
     private String mMime;
     private FileDescriptor mFd;
-    private MediaCodec mCodec;
+    volatile private MediaCodec mCodec;
     public MediaCodec.BufferInfo info = new MediaCodec.BufferInfo();
 
-    public boolean isExtracting = true;
-    public boolean isDecoding = true;
+    volatile public boolean requestStop = false;
+
+    volatile public boolean isExtracting = false;
+    volatile public boolean finishedExtracting = false;
+    volatile public boolean isDecoding = false;
+    public boolean decoderEndOfStream = false;
+
+    private Thread mThread;
 
     private int outputBufferIdx;
 
@@ -52,8 +60,11 @@ public class FileExtractor {
         return extractor;
     }
 
-    public void initialize (Context context, Uri uri)
+    public FileExtractor initialize (Context context, Uri uri)
             throws IOException {
+        if (mState != StateEnum.UNINITIALIZED) {
+            return null;
+        }
         mFd = context.getContentResolver().openFileDescriptor(uri, "r").getFileDescriptor();
 
         mExtractor = createMediaExtractor(mFd);
@@ -64,22 +75,42 @@ public class FileExtractor {
 
         mCodec = createMediaCodec(mFormat);
         mCodec.configure(mFormat, null, null, 0);
+
+        isExtracting = false;
+        isDecoding = false;
+        requestStop = false;
+        finishedExtracting = false;
+        decoderEndOfStream = false;
+
+        mState = StateEnum.INITIALIZED;
+
+        return this;
     }
 
-    public void start () {
+    public FileExtractor start () {
+        if (mState != StateEnum.INITIALIZED) {
+            return null;
+        }
+
         mCodec.start ();
 
         FileExtractor thisExtractor = this;
-        new Thread (new Runnable () {
+        mThread = new Thread (new Runnable () {
             @Override
             public void run () {
                 thisExtractor.run ();
             }
-        }).start ();
+        });
+        mThread.start ();
+
+        mState = StateEnum.EXECUTING;
+
+        return this;
     }
 
     private void run () {
-        while (isExtracting) {
+        while (finishedExtracting == false && requestStop == false) {
+            Log.v("", "comeco while");
             int inputBufferId = mCodec.dequeueInputBuffer(0);
             if (inputBufferId >= 0) {
                 ByteBuffer inputBuffer = mCodec.getInputBuffer(inputBufferId);
@@ -93,30 +124,48 @@ public class FileExtractor {
 
                     mExtractor.advance();
                 } else {
-                    isExtracting = false;
+                    finishedExtracting = true;
                     mCodec.queueInputBuffer(
                             inputBufferId, 0, 0,
                             0, MediaCodec.BUFFER_FLAG_END_OF_STREAM
                     );
                 }
             } else {
-                Log.v("FileExtrator", "No codecInputBuffers left");
+                Log.v("Extrator", "No codecInputBuffers left");
             }
         }
+        finishedExtracting = true;
+        onFinishedExtracting();
     }
 
     public ByteBuffer dequeueOutputBuffer () {
-        outputBufferIdx =  mCodec.dequeueOutputBuffer(info, 0);
-        if (outputBufferIdx >= 0) {
-            return mCodec.getOutputBuffer(outputBufferIdx);
+        if (requestStop == false) {
+            isDecoding = true;
+            outputBufferIdx =  mCodec.dequeueOutputBuffer(info, 0);
+            if (outputBufferIdx >= 0) {
+                return mCodec.getOutputBuffer(outputBufferIdx);
+            } else {
+                isDecoding = false;
+                Log.v("FileExtrator", "No codecOutputBuffers left");
+
+                if (info.flags == MediaCodec.BUFFER_FLAG_END_OF_STREAM) {
+                    decoderEndOfStream = true;
+                }
+            }
         } else {
-            Log.v("FileExtrator", "No codecOutputBuffers left");
-            return null;
+            decoderEndOfStream = true;
         }
+        return null;
     }
 
     public void releaseOutputBuffer () {
-        mCodec.releaseOutputBuffer(outputBufferIdx, 0);
+        if (requestStop == false) {
+            mCodec.releaseOutputBuffer(outputBufferIdx, false);
+        } else {
+            decoderEndOfStream = true;
+        }
+        isDecoding = false;
+        onFinishedDecodingBuffer();
     }
 
     private static ByteBuffer clone(ByteBuffer original) {
@@ -136,8 +185,72 @@ public class FileExtractor {
         return mFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT);
     }
 
-    public void stop (Context context) {
-        mCodec.release();
-        mCodec.stop();
+    public void stop () {
+        requestStop = true;
+        try {
+            mThread.join();
+        } catch (InterruptedException e) {
+        }
+        if (decoderEndOfStream && finishedExtracting) {
+            if (mCodec != null) {
+                mCodec.stop();
+                mCodec.release();
+                mCodec = null;
+            }
+            if (mExtractor != null) {
+                mExtractor.release();
+                mExtractor = null;
+            }
+            if (mCodec == null && mExtractor == null) {
+                mState = StateEnum.UNINITIALIZED;
+            }
+        }
+    }
+
+    private void onFinishedExtracting () {
+        if (requestStop) {
+            //stop();
+//            if (isDecoding == false && mState == StateEnum.EXECUTING) {
+//                Log.v("erw", "Stopped onFinishedExtracting");
+//                decoderEndOfStream = true;
+//                if (mCodec != null) {
+//                    if (mState == StateEnum.EXECUTING) {
+//                        mCodec.stop();
+//                        mCodec.release();
+//                    }
+//                    mCodec = null;
+//                }
+//                if (mExtractor != null) {
+//                    mExtractor.release();
+//                    mExtractor = null;
+//                }
+//                if (mCodec == null && mExtractor == null) {
+//                    mState = StateEnum.UNINITIALIZED;
+//                }
+//            }
+        }
+    }
+    private void onFinishedDecodingBuffer () {
+        if (requestStop) {
+            //stop();
+//            if (finishedExtracting == true && mState == StateEnum.EXECUTING) {
+//                Log.v("erw", "Stopped onFinishedDecodingBuffer");
+//                decoderEndOfStream = true;
+//                if (mCodec != null) {
+//                    if (mState == StateEnum.EXECUTING) {
+//                        mCodec.stop();
+//                        mCodec.release();
+//                    }
+//                    mCodec = null;
+//                }
+//                if (mExtractor != null) {
+//                    mExtractor.release();
+//                    mExtractor = null;
+//                }
+//                if (mCodec == null && mExtractor == null) {
+//                    mState = StateEnum.UNINITIALIZED;
+//                }
+//            }
+        }
     }
 }
