@@ -10,10 +10,12 @@ import android.Manifest;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
+import android.media.MediaExtractor;
 import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.widget.TextView;
 import android.view.View.OnClickListener;
@@ -34,6 +36,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.ShortBuffer;
 import java.util.Arrays;
+
 import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
@@ -42,6 +45,7 @@ public class MainActivity extends AppCompatActivity {
     static {
         System.loadLibrary("filterproject");
     }
+
 
     private ActivityMainBinding binding;
 
@@ -64,7 +68,7 @@ public class MainActivity extends AppCompatActivity {
 
                 Log.d("tag2", uri.getPath());
 
-                String f = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath() + "/LP.wav";
+                String f = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath() + "/LP2.wav";
 
                 File file2 = new File(f);
                 Log.d("nome", file2.getPath());
@@ -86,71 +90,81 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void playWav(File file) throws IOException {
-        int minBufferSize = AudioTrack.getMinBufferSize(8000, AudioFormat.CHANNEL_OUT_STEREO,AudioFormat.ENCODING_PCM_FLOAT);
-        int bufferSize = 512;
-        AudioTrack at = new AudioTrack(AudioManager.STREAM_MUSIC, 8000, AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_FLOAT, minBufferSize, AudioTrack.MODE_STREAM);
-        String filepath = Environment.getExternalStorageDirectory().getAbsolutePath();
+        int minBufferSize = AudioTrack.getMinBufferSize(48000, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_FLOAT);
+        int bufferSize = 32768;
+        int bufferSize2 = bufferSize / 2;
+        int bufferSize4 = bufferSize / 4;
+        AudioTrack at = new AudioTrack(AudioManager.STREAM_MUSIC, 48000, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_FLOAT, minBufferSize, AudioTrack.MODE_STREAM);
 
-        int i = 0;
+        MediaExtractor me = new MediaExtractor();
+        me.setDataSource(file.getPath());
+        me.selectTrack(0);
+
+
+        int i;
+
         byte[] s = new byte[bufferSize];
-        short[] shorts = new short[bufferSize/2];
         try {
             FileInputStream fin = new FileInputStream(file);
-            Log.d("nome2",file.getName());
+            Log.d("nome2", file.getName());
             DataInputStream dis = new DataInputStream(fin);
             at.play();
-            float float_arr2[] = new float[s.length];
-            float float_arr[] = new float[s.length];
-
-            float float_amp[] = new float[s.length];
-            float x[] = new float[20];
-            byte[] s_amp = new byte[s.length];
-            //float aux;
-            float aux = 0;
+            double[] audioFloats = new double[bufferSize4];
+            float[] audioFloats2 = new float[bufferSize4];
+            float float_amp[] = new float[bufferSize4];
+            for (int h = 0; h < float_amp.length; h++) {
+                float_amp[h] = 0.0f;
+            }
+            //float x[] = new float[20];
             //float h[]= {-0.0978f, 0.0877f, 0.0729f, 0.0698f, 0.0726f, 0.0780f, 0.0843f, 0.0897f, 0.0938f, 0.0961f, 0.0961f, 0.0938f, 0.0897f, 0.0843f, 0.0780f, 0.0726f, 0.0698f, 0.0729f, 0.0877f, -0.0978f};
-            float   g = 1.0f/32.0f; // overall filter gain
-            float[] a = {1, -2, 1};
-            float[] b = {g, 0, 0, 0, 0, 0, -2*g, 0, 0, 0, 0, 0, g};
+            double[] a = {1.000000000000, -9.39331398000000, 40.0758751800000, -102.252093950000, 172.765289700000, -201.969268100000, 165.442085090000, -93.7680344200000, 35.1938395300000, -7.89982228000000, 0.805444390000000};
+            double[] b = {0.00590141000000000, -0.0439812000000000, 0.140436120000000, -0.239946760000000, 0.205003030000000, 0, -0.205003030000000, 0.239946760000000, -0.140436120000000, 0.0439812000000000, -0.00590141000000000};
             IIRFilter filter = new IIRFilter(a, b);
-            float h[]={-0.0930250949393319f, 0.0207057333964976f, 0.0291475759590533f, 0.0430501166124715f, 0.0601692514455458f, 0.0788068471187608f, 0.0968422736437664f, 0.112413676993475f, 0.123818015340460f, 0.129851026602985f, 0.129851026602985f, 0.123818015340460f, 0.112413676993475f, 0.0968422736437664f, 0.0788068471187608f, 0.0601692514455458f, 0.0430501166124715f, 0.0291475759590533f, 0.0207057333964976f, -0.0930250949393319f};
-            InputStream is = new FileInputStream(file);
-            TTSInputStream bis = new TTSInputStream(is);
-            int count;
-
-
-            while((i = dis.read(s, 0, bufferSize)) > -1){
-
-                //filter.process(float_arr,float_amp);
-                //at.write(float_arr,0,bufferSize,0);
+            /*
+            while ((i = dis.read(s, 0, bufferSize)) > -1) {
 
                 ShortBuffer sbuf =
                         ByteBuffer.wrap(s).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer();
                 short[] audioShorts = new short[sbuf.capacity()];
                 sbuf.get(audioShorts);
 
-                float[] audioFloats = new float[audioShorts.length];
-                for (int t = 0; t < audioShorts.length; t++) {
-                    audioFloats[t] = ((float)audioShorts[t])/0x8000;
+                for (int t = 0; t < bufferSize4; t++) {
+                    audioFloats[t] = ((double) audioShorts[2 * t]) / 0x8000;
                 }
 
-                //filter.process(audioFloats,float_amp);
+                filter.process(audioFloats, float_amp);
 
-                Log.i("MyAndroidClass1", String.valueOf(audioFloats.length));
-                Log.i("MyAndroidClass2", Byte.toString(s_amp[10]));
-                for(int l =0; l< 256; l++){
-                    for(int j = 0; j < 19; j++){
-                        x[j]=x[j+1];
-                    }
-                    x[19] = audioFloats[l];
-                    aux = 0.0f;
-                    for(int k = 0; k < 20; k++){
-                        aux += h[k]*x[19-k];
-                    }
-                    float_amp[l] = aux;
+                Log.i("Float_Amp", Arrays.toString(audioFloats));
+                //Log.v("float_amp",String.valueOf(float_amp[5]));
+                //Log.i("audioFloats", Arrays.toString(audioFloats));
+                //Log.i("Float_Amp", Arrays.toString(float_amp));
+                at.write(float_amp, 0, bufferSize4, AudioTrack.WRITE_BLOCKING);
+            }
+             */
+            float[] float_amp2 = new float[bufferSize4];
+            ByteBuffer bf = ByteBuffer.allocate(32768);
+            while ((i = (me.readSampleData(bf,0))) > -1){
+                //Log.d("tam amostra", String.valueOf(i));
+                ShortBuffer sbuf =
+                        bf.order(ByteOrder.LITTLE_ENDIAN).asShortBuffer();
+                short[] audioShorts = new short[sbuf.capacity()];
+                sbuf.get(audioShorts);
+
+                for (int t = 0; t < bufferSize4; t++) {
+                    audioFloats[t] = ((double) audioShorts[2 * t]) / 0x8000;
                 }
 
-                at.write(float_amp, 0, 256, AudioTrack.WRITE_BLOCKING);
+                filter.process(audioFloats, float_amp);
 
+                //for (int t = 0; t < bufferSize4; t++) {
+                //    audioFloats2[t] = ((float) audioFloats[t]);
+                //}
+                //Log.i("Float_Amp", Arrays.toString(audioFloats));
+                //Log.v("float_amp",String.valueOf(float_amp[5]));
+                //Log.i("audioFloats", Arrays.toString(audioFloats));
+                //Log.i("Float_Amp", Arrays.toString(float_amp));
+                at.write(float_amp, 0, bufferSize4, AudioTrack.WRITE_BLOCKING);
+                me.advance();
             }
 
 
@@ -161,7 +175,7 @@ public class MainActivity extends AppCompatActivity {
 
         } catch (FileNotFoundException e) {
             // TODO
-            Log.d("erro",e.toString());
+            Log.d("erro", e.toString());
             e.printStackTrace();
         } catch (IOException e) {
             // TODO
@@ -196,35 +210,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-
     /**
      * A native method that is implemented by the 'filterproject' native library,
      * which is packaged with this application.
      */
     public native float[] test();
-    public native float[] amplify(float[] input, float[
-            ] input2, float[] h, int bufferSize);
 
-    public class TTSInputStream extends DataInputStream {
-        public TTSInputStream(InputStream in) {
-            super(in);
-        }
-
-        public final int readFullyUntilEof(byte b[]) throws IOException {
-            return readFullyUntilEof(b, 0, b.length);
-        }
-
-        public final int readFullyUntilEof(byte b[], int off, int len) throws IOException {
-            if (len < 0)
-                throw new IndexOutOfBoundsException();
-            int n = 0;
-            while (n < len) {
-                int count = in.read(b, off + n, len - n);
-                if (count < 0)
-                    break;
-                n += count;
-            }
-            return n;
-        }
-    }
 }
