@@ -154,7 +154,7 @@ public class MainActivity extends AppCompatActivity {
                     audioFloats[t] = ((double) audioShorts[2 * t]) / 0x8000;
                 }
 
-                filter.process(audioFloats, float_amp);
+                filter.process(audioFloats, float_amp, audioFloats.length);
 
                 //for (int t = 0; t < bufferSize4; t++) {
                 //    audioFloats2[t] = ((float) audioFloats[t]);

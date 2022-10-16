@@ -110,7 +110,7 @@ public class FileExtractor {
 
     private void run () {
         while (finishedExtracting == false && requestStop == false) {
-            Log.v("", "comeco while");
+            // Log.v("", "comeco while");
             int inputBufferId = mCodec.dequeueInputBuffer(0);
             if (inputBufferId >= 0) {
                 ByteBuffer inputBuffer = mCodec.getInputBuffer(inputBufferId);
@@ -131,7 +131,7 @@ public class FileExtractor {
                     );
                 }
             } else {
-                Log.v("Extrator", "No codecInputBuffers left");
+                // Log.v("Extrator", "No codecInputBuffers left");
             }
         }
         finishedExtracting = true;

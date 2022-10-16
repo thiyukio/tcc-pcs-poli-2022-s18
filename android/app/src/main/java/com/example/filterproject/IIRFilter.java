@@ -36,8 +36,8 @@ public class IIRFilter {
     // Filter samples from input buffer, and store result in output buffer.
     // Implementation based on Direct Form II.
     // Works similar to matlab's "output = filter(b,a,input)" command
-    public void process(double input[], float output[]) {
-        for (int i = 0; i < input.length; i++) {
+    public void process(double input[], float output[], int size) {
+        for (int i = 0; i < size; i++) {
 
             x[m] = input[i];
             yaux = b[0]*x[m];
