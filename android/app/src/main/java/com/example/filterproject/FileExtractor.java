@@ -109,8 +109,7 @@ public class FileExtractor {
     }
 
     private void run () {
-        while (finishedExtracting == false && requestStop == false) {
-            // Log.v("", "comeco while");
+        while (!finishedExtracting && !requestStop) {
             int inputBufferId = mCodec.dequeueInputBuffer(0);
             if (inputBufferId >= 0) {
                 ByteBuffer inputBuffer = mCodec.getInputBuffer(inputBufferId);
@@ -139,7 +138,7 @@ public class FileExtractor {
     }
 
     public ByteBuffer dequeueOutputBuffer () {
-        if (requestStop == false) {
+        if (!requestStop) {
             isDecoding = true;
             outputBufferIdx =  mCodec.dequeueOutputBuffer(info, 0);
             if (outputBufferIdx >= 0) {
@@ -159,7 +158,7 @@ public class FileExtractor {
     }
 
     public void releaseOutputBuffer () {
-        if (requestStop == false) {
+        if (!requestStop) {
             mCodec.releaseOutputBuffer(outputBufferIdx, false);
         } else {
             decoderEndOfStream = true;
