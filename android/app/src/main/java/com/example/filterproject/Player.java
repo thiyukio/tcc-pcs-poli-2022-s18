@@ -19,10 +19,34 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Phaser;
 
 public class Player {
+    private class RunnableImpl implements Runnable {
+        private volatile boolean stop;
+        private double[] doubleSamples = new double[10];
+        private float[] floatFiltered = new float[10];
+        public void stop () {
+            stop = true;
+        }
+        public void run () {
+            while(!stop) {
+                for (int t = 0; t < 10; t++) {
+                    try {
+                        doubleSamples[t] = mQueue.take();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                        stop = true;
+                    }
+                }
+                filter.process(doubleSamples, floatFiltered, 10);
+                mAt.write(floatFiltered, 0, 10, AudioTrack.WRITE_BLOCKING);
+            }
+        }
+    }
+
     private Uri mUri;
     private FileDescriptor mFd;
     private MediaExtractor mExtractor;
@@ -37,21 +61,13 @@ public class Player {
     double[] b = {0.00590141000000000, -0.0439812000000000, 0.140436120000000, -0.239946760000000, 0.205003030000000, 0, -0.205003030000000, 0.239946760000000, -0.140436120000000, 0.0439812000000000, -0.00590141000000000};
     private IIRFilter filter = new IIRFilter(a, b);
 
-    int numberOfBands = 5;
-    private IIRFilter[] filters;
-    Thread[] threads;
-    CountDownLatch startSignal;
-    CountDownLatch doneSignal;
-
-    Phaser startPhaser;
-    Phaser donePhaser;
-
-    float[] x;
-
     AudioTrack mAt;
     private MediaFormat mFormat;
     private String mMime;
     private MediaCodec mCodec;
+
+    private ArrayBlockingQueue<Double> mQueue = new ArrayBlockingQueue<>(10000);
+    private Thread mThread;
 
     static private MediaCodec createMediaCodec (MediaFormat format)
             throws IOException, IllegalArgumentException {
@@ -77,6 +93,16 @@ public class Player {
 
     public void initialize (Uri uri, Context context) throws IOException {
         mFd = context.getContentResolver().openFileDescriptor(uri, "r").getFileDescriptor();
+
+        if (mCodec != null) {
+            mCodec.stop();
+            mCodec.release();
+            mCodec = null;
+        }
+        if (mExtractor != null) {
+            mExtractor.release();
+            mExtractor = null;
+        }
 
         mExtractor = createMediaExtractor(mFd);
 
@@ -145,22 +171,14 @@ public class Player {
                 outputBuffer.order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(shortArray, 0, desiredDoubleArraySize*2);
 
                 for (int t = 0; t < desiredDoubleArraySize; t++) {
-                    doubleSamples[t] = ((double) shortArray[2*t]) / 0x8000;
+                    // Importante ser blocking
+                    try {
+                        mQueue.put(((double) shortArray[2*t]) / 0x8000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                 }
 
-                filter.process(doubleSamples, floatFiltered, desiredDoubleArraySize);
-//                filter.process(doubleSamples, floatFiltered, desiredDoubleArraySize);
-//                filter.process(doubleSamples, floatFiltered, desiredDoubleArraySize);
-//                filter.process(doubleSamples, floatFiltered, desiredDoubleArraySize);
-//                filter.process(doubleSamples, floatFiltered, desiredDoubleArraySize);
-//                filter.process(doubleSamples, floatFiltered, desiredDoubleArraySize);
-//                filter.process(doubleSamples, floatFiltered, desiredDoubleArraySize);
-//                filter.process(doubleSamples, floatFiltered, desiredDoubleArraySize);
-//                filter.process(doubleSamples, floatFiltered, desiredDoubleArraySize);
-//                filter.process(doubleSamples, floatFiltered, desiredDoubleArraySize);
-
-                // Importante ser blocking ou vai ter que usar FIFO
-                mAt.write(floatFiltered, 0, desiredDoubleArraySize, AudioTrack.WRITE_BLOCKING);
                 mCodec.releaseOutputBuffer(index, false);
             }
 
@@ -175,11 +193,16 @@ public class Player {
             }
         });
 
+        mQueue.clear();
+
+        mThread = new Thread(new RunnableImpl());
+
         return;
     }
 
     public void start () {
         mAt.play();
         mCodec.start();
+        mThread.start();
     }
 }
