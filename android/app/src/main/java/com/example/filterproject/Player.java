@@ -23,14 +23,17 @@ public class Player {
     double[] doubleFiltered;
     short[] shortArray;
 
-    double[] a = {1.000000000000, -9.39331398000000, 40.0758751800000, -102.252093950000, 172.765289700000, -201.969268100000, 165.442085090000, -93.7680344200000, 35.1938395300000, -7.89982228000000, 0.805444390000000};
-    double[] b = {0.00590141000000000, -0.0439812000000000, 0.140436120000000, -0.239946760000000, 0.205003030000000, 0, -0.205003030000000, 0.239946760000000, -0.140436120000000, 0.0439812000000000, -0.00590141000000000};
+    double[] a = { 1.000000000000, -9.39331398000000, 40.0758751800000, -102.252093950000, 172.765289700000,
+            -201.969268100000, 165.442085090000, -93.7680344200000, 35.1938395300000, -7.89982228000000,
+            0.805444390000000 };
+    double[] b = { 0.00590141000000000, -0.0439812000000000, 0.140436120000000, -0.239946760000000, 0.205003030000000,
+            0, -0.205003030000000, 0.239946760000000, -0.140436120000000, 0.0439812000000000, -0.00590141000000000 };
 
     float[] x;
 
     AudioTrack at;
 
-    public void initialize (Uri uri, Context context) {
+    public void initialize(Uri uri, Context context) {
         if (mThread != null) {
             boolean success = false;
             for (int attempts = 0; attempts < 100 && !success; attempts++) {
@@ -75,11 +78,10 @@ public class Player {
             return;
         }
 
-        int channelConfig = numChannels == 1 ? AudioFormat.CHANNEL_OUT_MONO : AudioFormat.CHANNEL_OUT_STEREO;
-
-        int minBufferSize = AudioTrack.getMinBufferSize(sampleRate, channelConfig, AudioFormat.ENCODING_PCM_FLOAT);
+        int minBufferSize = AudioTrack.getMinBufferSize(sampleRate, AudioFormat.CHANNEL_OUT_MONO,
+                AudioFormat.ENCODING_PCM_FLOAT);
         at = new AudioTrack(AudioManager.STREAM_MUSIC,
-                sampleRate, channelConfig,
+                sampleRate, AudioFormat.CHANNEL_OUT_MONO,
                 AudioFormat.ENCODING_PCM_FLOAT, minBufferSize,
                 AudioTrack.MODE_STREAM);
 
@@ -95,7 +97,7 @@ public class Player {
         filter = new IIRFilter(a, b);
     }
 
-    public void start () {
+    public void start() {
         if (mFe.start() == null) {
             Log.e("Player", "Failed to start fileExtractor, try again later");
             return;
@@ -105,7 +107,7 @@ public class Player {
         mThread.start();
     }
 
-    private void run () {
+    private void run() {
         for (boolean iterate = true; iterate;) {
             ByteBuffer bbuf = mFe.dequeueOutputBuffer();
             if (bbuf == null) {
@@ -115,27 +117,28 @@ public class Player {
                 continue;
             }
 
-
+            int numChannels = mFe.getNumChannels();
+            int isStereo = numChannels == 2 ? 1 : 0;
             int bufferSizeInBytes = bbuf.limit() - bbuf.position();
             int desiredFloatArraySize = bufferSizeInBytes / 2;
             if (desiredFloatArraySize > floatSamples.length) {
                 shortArray = new short[desiredFloatArraySize];
-                doubleSamples = new double[desiredFloatArraySize];
-                floatFiltered = new float[desiredFloatArraySize];
-                doubleFiltered = new double[desiredFloatArraySize];
+                doubleSamples = new double[desiredFloatArraySize / numChannels];
+                floatFiltered = new float[desiredFloatArraySize / numChannels];
+                doubleFiltered = new double[desiredFloatArraySize / numChannels];
             }
+
             bbuf.order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(shortArray, 0, desiredFloatArraySize);
 
-            for (int t = 0; t < desiredFloatArraySize; t++) {
-                doubleSamples[t] = ((double) shortArray[t]) / 0x8000;
-            }
+            for (int t = 0; t < desiredFloatArraySize / numChannels; t++) {
+                doubleSamples[t] = (double) (shortArray[numChannels * t] + shortArray[numChannels * t + isStereo]) / 0x10000;
+                }
 
-            filter.process(doubleSamples, floatFiltered, desiredFloatArraySize);
+            filter.process(doubleSamples, floatFiltered, desiredFloatArraySize / numChannels);
 
-
-            at.write(floatFiltered, 0, bufferSizeInBytes / 2, AudioTrack.WRITE_BLOCKING);
+            at.write(floatFiltered, 0, desiredFloatArraySize / numChannels, AudioTrack.WRITE_BLOCKING);
             mFe.releaseOutputBuffer();
-;
+
         }
         filter = null;
         at.stop();
