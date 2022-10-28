@@ -1,6 +1,8 @@
 package com.example.filterproject;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
+import android.media.AudioAttributes;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
@@ -24,28 +26,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Phaser;
 
 public class Player {
-    private class RunnableImpl implements Runnable {
-        private volatile boolean stop;
-        private double[] doubleSamples = new double[10];
-        private float[] floatFiltered = new float[10];
-        public void stop () {
-            stop = true;
-        }
-        public void run () {
-            while(!stop) {
-                for (int t = 0; t < 10; t++) {
-                    try {
-                        doubleSamples[t] = mQueue.take();
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                        stop = true;
-                    }
-                }
-                filter.process(doubleSamples, floatFiltered, 10);
-                mAt.write(floatFiltered, 0, 10, AudioTrack.WRITE_BLOCKING);
-            }
-        }
-    }
 
     private Uri mUri;
     private FileDescriptor mFd;
@@ -65,9 +45,6 @@ public class Player {
     private MediaFormat mFormat;
     private String mMime;
     private MediaCodec mCodec;
-
-    private ArrayBlockingQueue<Double> mQueue = new ArrayBlockingQueue<>(10000);
-    private Thread mThread;
 
     static private MediaCodec createMediaCodec (MediaFormat format)
             throws IOException, IllegalArgumentException {
@@ -91,18 +68,12 @@ public class Player {
         return extractor;
     }
 
+    @SuppressLint("NewApi")
     public void initialize (Uri uri, Context context) throws IOException {
-        mFd = context.getContentResolver().openFileDescriptor(uri, "r").getFileDescriptor();
+        stop();
 
-        if (mCodec != null) {
-            mCodec.stop();
-            mCodec.release();
-            mCodec = null;
-        }
-        if (mExtractor != null) {
-            mExtractor.release();
-            mExtractor = null;
-        }
+        mUri = uri;
+        mFd = context.getContentResolver().openFileDescriptor(uri, "r").getFileDescriptor();
 
         mExtractor = createMediaExtractor(mFd);
 
@@ -112,7 +83,6 @@ public class Player {
 
         mCodec = createMediaCodec(mFormat);
         mCodec.configure(mFormat, null, null, 0);
-        mCodec.getOutputFormat();
 
         Integer sampleRate = mFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE);
         Integer numChannels = mFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT);
@@ -122,12 +92,20 @@ public class Player {
 
         int minBufferSize = AudioTrack.getMinBufferSize(sampleRate, channelConfig, AudioFormat.ENCODING_PCM_FLOAT);
         int bufferSize = 512;
-        mAt = new AudioTrack(AudioManager.STREAM_MUSIC,
-                sampleRate, channelConfig,
-                AudioFormat.ENCODING_PCM_FLOAT, minBufferSize,
-                AudioTrack.MODE_STREAM);
+        mAt = new AudioTrack.Builder()
+                .setAudioAttributes(new AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                        .build())
+                .setAudioFormat(new AudioFormat.Builder()
+                        .setEncoding(AudioFormat.ENCODING_PCM_FLOAT)
+                        .setSampleRate(sampleRate)
+                        .setChannelMask(channelConfig)
+                        .build())
+                .setBufferSizeInBytes(minBufferSize)
+                .build();
 
-        Log.v("gdf", "Sample Rate = "+sampleRate+", numChannels = "+numChannels);
+        //Log.v("gdf", "Sample Rate = "+sampleRate+", numChannels = "+numChannels);
 
         floatSamples = new float[0];
         doubleSamples = new double[0];
@@ -162,8 +140,9 @@ public class Player {
 
                 int bufferSizeInBytes = info.size;
                 int desiredDoubleArraySize = bufferSizeInBytes / 4;
-                if (desiredDoubleArraySize > doubleSamples.length) {
+                if (desiredDoubleArraySize*2 > shortArray.length) {
                     doubleSamples = new double[desiredDoubleArraySize];
+                    shortArray = null;
                     shortArray = new short[desiredDoubleArraySize*2];
                     floatFiltered = new float[desiredDoubleArraySize];
                 }
@@ -172,12 +151,15 @@ public class Player {
 
                 for (int t = 0; t < desiredDoubleArraySize; t++) {
                     // Importante ser blocking
-                    try {
-                        mQueue.put(((double) shortArray[2*t]) / 0x8000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
+                    doubleSamples[t] = (((double) shortArray[2*t]) / 0x8000);
                 }
+
+                // Simulação de vários filtros
+                for(int i=0; i<50; i++){
+                    filter.process(doubleSamples, floatFiltered, desiredDoubleArraySize);
+                }
+
+                mAt.write(floatFiltered, 0, desiredDoubleArraySize, AudioTrack.WRITE_BLOCKING);
 
                 mCodec.releaseOutputBuffer(index, false);
             }
@@ -193,9 +175,6 @@ public class Player {
             }
         });
 
-        mQueue.clear();
-
-        mThread = new Thread(new RunnableImpl());
 
         return;
     }
@@ -203,6 +182,20 @@ public class Player {
     public void start () {
         mAt.play();
         mCodec.start();
-        mThread.start();
+    }
+
+    public void stop () {
+        if (mCodec != null) {
+            mCodec.stop();
+            mCodec.release();
+            mCodec = null;
+        }
+        if (mExtractor != null) {
+            mExtractor.release();
+            mExtractor = null;
+        }
+        if (mAt != null) {
+            mAt.release();
+        }
     }
 }
