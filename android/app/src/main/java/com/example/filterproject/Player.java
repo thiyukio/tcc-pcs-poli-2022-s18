@@ -37,8 +37,11 @@ public class Player {
     double[] doubleFiltered;
     short[] shortArray;
 
-    double[] a = {1.000000000000, -9.39331398000000, 40.0758751800000, -102.252093950000, 172.765289700000, -201.969268100000, 165.442085090000, -93.7680344200000, 35.1938395300000, -7.89982228000000, 0.805444390000000};
-    double[] b = {0.00590141000000000, -0.0439812000000000, 0.140436120000000, -0.239946760000000, 0.205003030000000, 0, -0.205003030000000, 0.239946760000000, -0.140436120000000, 0.0439812000000000, -0.00590141000000000};
+    double[] a = { 1.000000000000, -9.39331398000000, 40.0758751800000, -102.252093950000, 172.765289700000,
+            -201.969268100000, 165.442085090000, -93.7680344200000, 35.1938395300000, -7.89982228000000,
+            0.805444390000000 };
+    double[] b = { 0.00590141000000000, -0.0439812000000000, 0.140436120000000, -0.239946760000000, 0.205003030000000,
+            0, -0.205003030000000, 0.239946760000000, -0.140436120000000, 0.0439812000000000, -0.00590141000000000 };
     private IIRFilter filter = new IIRFilter(a, b);
 
     AudioTrack mAt;
@@ -46,21 +49,21 @@ public class Player {
     private String mMime;
     private MediaCodec mCodec;
 
-    static private MediaCodec createMediaCodec (MediaFormat format)
+    static private MediaCodec createMediaCodec(MediaFormat format)
             throws IOException, IllegalArgumentException {
         assert format != null;
         String codecName = new MediaCodecList(MediaCodecList.ALL_CODECS).findDecoderForFormat(format);
         MediaCodec codec = null;
         String mime = format.getString(MediaFormat.KEY_MIME);
-        //Log.d(, "try to create a codec mime="+mime+" codecName="+codecName);
+        // Log.d(, "try to create a codec mime="+mime+" codecName="+codecName);
         if (codecName != null)
             codec = MediaCodec.createByCodecName(codecName);
         else if (mime != null)
-            codec = MediaCodec.createDecoderByType(mime);  // may be throw IllegalArgumentException
+            codec = MediaCodec.createDecoderByType(mime); // may be throw IllegalArgumentException
         return codec;
     }
 
-    static private MediaExtractor createMediaExtractor (FileDescriptor fd) throws IOException {
+    static private MediaExtractor createMediaExtractor(FileDescriptor fd) throws IOException {
         MediaExtractor extractor = new MediaExtractor();
         extractor.setDataSource(fd);
         extractor.selectTrack(0);
@@ -69,7 +72,7 @@ public class Player {
     }
 
     @SuppressLint("NewApi")
-    public void initialize (Uri uri, Context context) throws IOException {
+    public void initialize(Uri uri, Context context) throws IOException {
         stop();
 
         mUri = uri;
@@ -87,7 +90,8 @@ public class Player {
         Integer sampleRate = mFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE);
         Integer numChannels = mFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT);
 
-        // int channelConfig = numChannels == 1 ? AudioFormat.CHANNEL_OUT_MONO : AudioFormat.CHANNEL_OUT_STEREO;
+        // int channelConfig = numChannels == 1 ? AudioFormat.CHANNEL_OUT_MONO :
+        // AudioFormat.CHANNEL_OUT_STEREO;
         int channelConfig = AudioFormat.CHANNEL_OUT_MONO;
 
         int minBufferSize = AudioTrack.getMinBufferSize(sampleRate, channelConfig, AudioFormat.ENCODING_PCM_FLOAT);
@@ -105,7 +109,7 @@ public class Player {
                 .setBufferSizeInBytes(minBufferSize)
                 .build();
 
-        //Log.v("gdf", "Sample Rate = "+sampleRate+", numChannels = "+numChannels);
+        // Log.v("gdf", "Sample Rate = "+sampleRate+", numChannels = "+numChannels);
 
         floatSamples = new float[0];
         doubleSamples = new double[0];
@@ -132,7 +136,8 @@ public class Player {
             }
 
             @Override
-            public void onOutputBufferAvailable(@NonNull MediaCodec codec, int index, @NonNull MediaCodec.BufferInfo info) {
+            public void onOutputBufferAvailable(@NonNull MediaCodec codec, int index,
+                    @NonNull MediaCodec.BufferInfo info) {
                 ByteBuffer outputBuffer = mCodec.getOutputBuffer(index);
                 if (outputBuffer == null) {
                     return;
@@ -140,22 +145,23 @@ public class Player {
 
                 int bufferSizeInBytes = info.size;
                 int desiredDoubleArraySize = bufferSizeInBytes / 4;
-                if (desiredDoubleArraySize*2 > shortArray.length) {
+                if (desiredDoubleArraySize * 2 > shortArray.length) {
                     doubleSamples = new double[desiredDoubleArraySize];
                     shortArray = null;
-                    shortArray = new short[desiredDoubleArraySize*2];
+                    shortArray = new short[desiredDoubleArraySize * 2];
                     floatFiltered = new float[desiredDoubleArraySize];
                 }
 
-                outputBuffer.order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(shortArray, 0, desiredDoubleArraySize*2);
+                outputBuffer.order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(shortArray, 0,
+                        desiredDoubleArraySize * 2);
 
                 for (int t = 0; t < desiredDoubleArraySize; t++) {
                     // Importante ser blocking
-                    doubleSamples[t] = (((double) shortArray[2*t]) / 0x8000);
+                    doubleSamples[t] = (((double) shortArray[2 * t]) / 0x8000);
                 }
 
                 // Simulação de vários filtros
-                for(int i=0; i<50; i++){
+                for (int i = 0; i < 50; i++) {
                     filter.process(doubleSamples, floatFiltered, desiredDoubleArraySize);
                 }
 
@@ -175,16 +181,15 @@ public class Player {
             }
         });
 
-
         return;
     }
 
-    public void start () {
+    public void start() {
         mAt.play();
         mCodec.start();
     }
 
-    public void stop () {
+    public void stop() {
         if (mCodec != null) {
             mCodec.stop();
             mCodec.release();
