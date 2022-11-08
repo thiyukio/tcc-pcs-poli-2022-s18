@@ -1,12 +1,12 @@
 package com.example.filterproject;
 
-
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.os.Bundle;
 
+import android.os.Environment;
 import android.util.Log;
 import android.view.View.OnClickListener;
 import android.net.Uri;
@@ -16,6 +16,12 @@ import com.example.filterproject.databinding.ActivityMainBinding;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.ShortBuffer;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -45,8 +51,12 @@ public class MainActivity extends AppCompatActivity {
             });
 
     public void playWav(Uri uri) {
-        mPlayer.initialize(uri, getApplicationContext());
-        mPlayer.start();
+        try {
+            mPlayer.initialize(uri, getApplicationContext());
+            mPlayer.start();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
