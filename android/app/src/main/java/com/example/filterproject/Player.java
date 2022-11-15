@@ -4,31 +4,24 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.media.AudioAttributes;
 import android.media.AudioFormat;
-import android.media.AudioManager;
 import android.media.AudioTrack;
 import android.media.MediaCodec;
 import android.media.MediaCodecList;
 import android.media.MediaExtractor;
 import android.media.MediaFormat;
 import android.net.Uri;
-import android.provider.MediaStore;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 
 import java.io.FileDescriptor;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Phaser;
 
 public class Player {
 
-    private Uri mUri;
-    private FileDescriptor mFd;
+    public static int NUM_BANDS = 6;
+
     private MediaExtractor mExtractor;
 
     float[] floatSamples;
@@ -37,16 +30,9 @@ public class Player {
     double[] doubleFiltered;
     short[] shortArray;
 
-    double[] a = { 1.000000000000, -9.39331398000000, 40.0758751800000, -102.252093950000, 172.765289700000,
-            -201.969268100000, 165.442085090000, -93.7680344200000, 35.1938395300000, -7.89982228000000,
-            0.805444390000000 };
-    double[] b = { 0.00590141000000000, -0.0439812000000000, 0.140436120000000, -0.239946760000000, 0.205003030000000,
-            0, -0.205003030000000, 0.239946760000000, -0.140436120000000, 0.0439812000000000, -0.00590141000000000 };
-    private IIRFilter filter = new IIRFilter(a, b);
+    private IIRFilter[] filters = new IIRFilter[NUM_BANDS];
 
     AudioTrack mAt;
-    private MediaFormat mFormat;
-    private String mMime;
     private MediaCodec mCodec;
 
     static private MediaCodec createMediaCodec(MediaFormat format)
@@ -75,14 +61,11 @@ public class Player {
     public void initialize(Uri uri, Context context) throws IOException {
         stop();
 
-        mUri = uri;
-        mFd = context.getContentResolver().openFileDescriptor(uri, "r").getFileDescriptor();
+        FileDescriptor mFd = context.getContentResolver().openFileDescriptor(uri, "r").getFileDescriptor();
 
         mExtractor = createMediaExtractor(mFd);
 
-        mFormat = mExtractor.getTrackFormat(0);
-
-        mMime = mFormat.getString(MediaFormat.KEY_MIME);
+        MediaFormat mFormat = mExtractor.getTrackFormat(0);
 
         mCodec = createMediaCodec(mFormat);
         mCodec.configure(mFormat, null, null, 0);
@@ -90,9 +73,10 @@ public class Player {
         Integer sampleRate = mFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE);
         Integer numChannels = mFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT);
 
+        filters = FilterConstants.getFilters(sampleRate);
+
         int channelConfig = AudioFormat.CHANNEL_OUT_MONO;
         int minBufferSize = AudioTrack.getMinBufferSize(sampleRate, channelConfig, AudioFormat.ENCODING_PCM_FLOAT);
-        int bufferSize = 512;
         mAt = new AudioTrack.Builder()
                 .setAudioAttributes(new AudioAttributes.Builder()
                         .setUsage(AudioAttributes.USAGE_MEDIA)
@@ -145,7 +129,6 @@ public class Player {
                 int desiredDoubleArraySize = bufferSizeInBytes / 2;
                 if (desiredDoubleArraySize > shortArray.length) {
                     doubleSamples = new double[desiredDoubleArraySize / numChannels];
-                    shortArray = null;
                     shortArray = new short[desiredDoubleArraySize];
                     floatFiltered = new float[desiredDoubleArraySize / numChannels];
                 }
@@ -159,7 +142,7 @@ public class Player {
                             / 0x10000;
                 }
 
-                filter.process(doubleSamples, floatFiltered, desiredDoubleArraySize / numChannels);
+                filters[1].process(doubleSamples, floatFiltered, desiredDoubleArraySize / numChannels);
 
                 mAt.write(floatFiltered, 0, desiredDoubleArraySize / numChannels, AudioTrack.WRITE_BLOCKING);
 
@@ -177,7 +160,6 @@ public class Player {
             }
         });
 
-        return;
     }
 
     public void start() {
