@@ -26,7 +26,8 @@ public class Player {
 
     float[] floatSamples;
     double[] doubleSamples;
-    float[] floatFiltered;
+    float[] filteredA, filteredB, filteredC, filteredD, filteredE, filteredF;
+
     double[] doubleFiltered;
     short[] shortArray;
 
@@ -58,7 +59,7 @@ public class Player {
     }
 
     @SuppressLint("NewApi")
-    public void initialize(Uri uri, Context context) throws IOException {
+    public void initialize(Uri uri, float value250, Context context) throws IOException {
         stop();
 
         FileDescriptor mFd = context.getContentResolver().openFileDescriptor(uri, "r").getFileDescriptor();
@@ -94,7 +95,12 @@ public class Player {
 
         floatSamples = new float[0];
         doubleSamples = new double[0];
-        floatFiltered = new float[0];
+        filteredA = new float[0];
+        filteredB = new float[0];
+        filteredC = new float[0];
+        filteredD = new float[0];
+        filteredE = new float[0];
+        filteredF = new float[0];
         doubleFiltered = new double[0];
         shortArray = new short[0];
 
@@ -130,7 +136,12 @@ public class Player {
                 if (desiredDoubleArraySize > shortArray.length) {
                     doubleSamples = new double[desiredDoubleArraySize / numChannels];
                     shortArray = new short[desiredDoubleArraySize];
-                    floatFiltered = new float[desiredDoubleArraySize / numChannels];
+                    filteredA = new float[desiredDoubleArraySize / numChannels];
+                    filteredB = new float[desiredDoubleArraySize / numChannels];
+                    filteredC = new float[desiredDoubleArraySize / numChannels];
+                    filteredD = new float[desiredDoubleArraySize / numChannels];
+                    filteredE = new float[desiredDoubleArraySize / numChannels];
+                    filteredF = new float[desiredDoubleArraySize / numChannels];
                 }
 
                 outputBuffer.order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(shortArray, 0,
@@ -142,9 +153,24 @@ public class Player {
                             / 0x10000;
                 }
 
-                filters[1].process(doubleSamples, floatFiltered, desiredDoubleArraySize / numChannels);
+                filters[0].process(doubleSamples, filteredA, desiredDoubleArraySize / numChannels);
+                filters[1].process(doubleSamples, filteredB, desiredDoubleArraySize / numChannels);
+                filters[2].process(doubleSamples, filteredC, desiredDoubleArraySize / numChannels);
+                filters[3].process(doubleSamples, filteredD, desiredDoubleArraySize / numChannels);
+                filters[4].process(doubleSamples, filteredE, desiredDoubleArraySize / numChannels);
+                filters[5].process(doubleSamples, filteredF, desiredDoubleArraySize / numChannels);
+/*
+                for (int t = 0; t < desiredDoubleArraySize / numChannels; t++) {
+                    floatFiltered[t] = floatFiltered[t]*0 +1* value250;
+                }*/
 
-                mAt.write(floatFiltered, 0, desiredDoubleArraySize / numChannels, AudioTrack.WRITE_BLOCKING);
+                float[] output = new float[desiredDoubleArraySize / numChannels];
+
+                for (int t = 0; t < desiredDoubleArraySize / numChannels; t++) {
+                    output[t] = (filteredA[t] + filteredB[t] + filteredC[t] + filteredD[t] + filteredE[t] + filteredF [t])/NUM_BANDS;
+                }
+
+                mAt.write(output, 0, desiredDoubleArraySize / numChannels, AudioTrack.WRITE_BLOCKING);
 
                 mCodec.releaseOutputBuffer(index, false);
             }

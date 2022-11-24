@@ -6,14 +6,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
 import android.Manifest;
-import android.media.AudioFormat;
-import android.media.AudioManager;
-import android.media.AudioTrack;
-import android.media.MediaExtractor;
-import android.media.MediaPlayer;
 import android.os.Bundle;
-import android.os.Environment;
-import android.util.Log;
+import android.widget.Button;
 import android.widget.TextView;
 import android.view.View.OnClickListener;
 import android.net.Uri;
@@ -22,14 +16,8 @@ import android.view.View;
 import com.example.filterproject.databinding.ActivityMainBinding;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
-import java.io.DataInputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.ShortBuffer;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -45,40 +33,28 @@ public class MainActivity extends AppCompatActivity {
     Player mPlayer = new Player();
 
     FloatingActionButton pickAFileButton;
+    Button plusButton;
+    Button minusButton;
+    float value250 = 0;
 
     ActivityResultLauncher<String> mGetContent = registerForActivityResult(
 
             new ActivityResultContracts.GetContent(),
             uri -> {
-                String message = String.format(
-                        "Consegui a uri = %s",
-                        uri
-                );
 
-                Log.d("myTag", message);
                 this.file = new File(uri.getPath());
-
-                Log.d("tag2", uri.getPath());
-
-                String f = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath() + "/LP2.wav";
-
-                File file2 = new File(f);
-                Log.d("nome", file2.getPath());
-
-                playWav(uri);
+                playWav(uri, value250);
+                String message = String.format(
+                        "Reproduzindo %s com valor %s",
+                        this.file.getPath(), this.value250
+                );
 
                 binding.sampleText.setText(message);
             });
 
-    public void func(Uri uri) throws IOException {
-        MediaPlayer mp = MediaPlayer.create(getApplicationContext(), uri);
-        mp.setAudioStreamType(AudioManager.STREAM_MUSIC);
-        mp.start();
-    }
-
-    public void playWav(Uri uri) {
+    public void playWav(Uri uri, float value250) {
         try {
-            mPlayer.initialize(uri, getApplicationContext());
+            mPlayer.initialize(uri, value250, getApplicationContext());
             mPlayer.start();
         } catch (IOException e) {
             e.printStackTrace();
@@ -93,13 +69,23 @@ public class MainActivity extends AppCompatActivity {
         setContentView(binding.getRoot());
 
         pickAFileButton = binding.pickAFileButton;
+        plusButton = binding.plusButton;
+        minusButton = binding.minusButton;
 
-        pickAFileButton.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // start file chooser
-                mGetContent.launch("audio/*");
-            }
+        plusButton.setOnClickListener(v -> {
+            value250 += 0.1f;
+            update250();
+        });
+
+        minusButton.setOnClickListener(v -> {
+            value250 -= 0.1f;
+            update250();
+        });
+
+
+        pickAFileButton.setOnClickListener(v -> {
+            // start file chooser
+            mGetContent.launch("audio/*");
         });
 
         // Example of a call to a native method
@@ -107,8 +93,11 @@ public class MainActivity extends AppCompatActivity {
         ActivityCompat.requestPermissions(MainActivity.this,
                 new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
                 1);
-        tv.setText(Float.toString(test()[0]) + ", " + Float.toString(test()[1]));
-        // tv.setText(test().toString());
+
+    }
+
+    public void update250(){
+        binding.value250.setText(String.valueOf(value250));
     }
 
 
@@ -116,6 +105,6 @@ public class MainActivity extends AppCompatActivity {
      * A native method that is implemented by the 'filterproject' native library,
      * which is packaged with this application.
      */
-    public native float[] test();
+
 
 }
