@@ -166,9 +166,8 @@ public class Player {
 
                 float[] output = new float[desiredDoubleArraySize / numChannels];
 
-                for (int t = 0; t < desiredDoubleArraySize / numChannels; t++) {
-                    output[t] = (filteredA[t] + filteredB[t] + filteredC[t] + filteredD[t] + filteredE[t] + filteredF [t])/NUM_BANDS;
-                }
+                Amplifier ap = new Amplifier();
+                output = ap.amplify(filteredA, filteredB, filteredC, filteredD, filteredE, filteredF);
 
                 mAt.write(output, 0, desiredDoubleArraySize / numChannels, AudioTrack.WRITE_BLOCKING);
 
