@@ -59,7 +59,7 @@ public class Player {
     }
 
     @SuppressLint("NewApi")
-    public void initialize(Uri uri, float value250, Context context) throws IOException {
+    public void initialize(Uri uri, Context context) throws IOException {
         stop();
 
         FileDescriptor mFd = context.getContentResolver().openFileDescriptor(uri, "r").getFileDescriptor();

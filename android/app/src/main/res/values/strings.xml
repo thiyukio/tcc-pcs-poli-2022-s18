@@ -1,3 +1,11 @@
 <resources>
     <string name="app_name">Filter project</string>
+    <string name="freqA">250Hz</string>
+    <string name="freqB">500Hz</string>
+    <string name="freqC">1kHz</string>
+    <string name="freqD">2kHz</string>
+    <string name="freqE">4kHz</string>
+    <string name="freqF">5kHz</string>
+    <string name="minus">-</string>
+    <string name="plus">+</string>
 </resources>
