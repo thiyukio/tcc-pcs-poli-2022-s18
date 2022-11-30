@@ -42,17 +42,17 @@ public class MainActivity extends AppCompatActivity {
             uri -> {
 
                 this.file = new File(uri.getPath());
-                playWav(uri, value250);
+                playWav(uri, audiogram);
                 String message = String.format(
                         "Reproduzindo %s com valor %s",
-                        this.file.getPath(), this.value250);
+                        this.file.getPath(), this.audiogram);
 
                 binding.sampleText.setText(message);
             });
 
-    public void playWav(Uri uri, float value250) {
+    public void playWav(Uri uri, int[] audiogram) {
         try {
-            mPlayer.initialize(uri, getApplicationContext());
+            mPlayer.initialize(uri, getApplicationContext(), audiogram);
             mPlayer.start();
         } catch (IOException e) {
             e.printStackTrace();

@@ -59,8 +59,10 @@ public class Player {
     }
 
     @SuppressLint("NewApi")
-    public void initialize(Uri uri, Context context) throws IOException {
+    public void initialize(Uri uri, Context context, int[] audiogram) throws IOException {
         stop();
+
+        Amplifier ap = new Amplifier(audiogram);
 
         FileDescriptor mFd = context.getContentResolver().openFileDescriptor(uri, "r").getFileDescriptor();
 
@@ -159,14 +161,9 @@ public class Player {
                 filters[3].process(doubleSamples, filteredD, desiredDoubleArraySize / numChannels);
                 filters[4].process(doubleSamples, filteredE, desiredDoubleArraySize / numChannels);
                 filters[5].process(doubleSamples, filteredF, desiredDoubleArraySize / numChannels);
-/*
-                for (int t = 0; t < desiredDoubleArraySize / numChannels; t++) {
-                    floatFiltered[t] = floatFiltered[t]*0 +1* value250;
-                }*/
 
                 float[] output = new float[desiredDoubleArraySize / numChannels];
 
-                Amplifier ap = new Amplifier();
                 output = ap.amplify(filteredA, filteredB, filteredC, filteredD, filteredE, filteredF);
 
                 mAt.write(output, 0, desiredDoubleArraySize / numChannels, AudioTrack.WRITE_BLOCKING);
