@@ -23,7 +23,7 @@ public class Player {
     public static int NUM_BANDS = 6;
 
     private MediaExtractor mExtractor;
-
+    private int pos;
     float[] floatSamples;
     double[] doubleSamples;
     float[] filteredA, filteredB, filteredC, filteredD, filteredE, filteredF;
@@ -32,7 +32,7 @@ public class Player {
     short[] shortArray;
 
     private IIRFilter[] filters = new IIRFilter[NUM_BANDS];
-
+    private Amplifier[] Amp = new Amplifier[NUM_BANDS];
     AudioTrack mAt;
     private MediaCodec mCodec;
 
@@ -61,8 +61,11 @@ public class Player {
     @SuppressLint("NewApi")
     public void initialize(Uri uri, Context context, int[] audiogram) throws IOException {
         stop();
+        int[] Pl = {10, 6, 4, 4, -5, 16};
 
-        Amplifier ap = new Amplifier(audiogram);
+        for(int num_amp = 0; num_amp < NUM_BANDS; num_amp++){
+            Amp[num_amp] = new Amplifier(96,1.5f,16,0.9f,Pl[num_amp], audiogram[num_amp]);
+        }
 
         FileDescriptor mFd = context.getContentResolver().openFileDescriptor(uri, "r").getFileDescriptor();
 
@@ -105,6 +108,7 @@ public class Player {
         filteredF = new float[0];
         doubleFiltered = new double[0];
         shortArray = new short[0];
+
 
         mCodec.setCallback(new MediaCodec.Callback() {
             @Override
@@ -154,7 +158,7 @@ public class Player {
                     doubleSamples[t] = (double) (shortArray[numChannels * t] + shortArray[numChannels * t + isStereo])
                             / 0x10000;
                 }
-
+                float[] output = new float[desiredDoubleArraySize / numChannels];
                 filters[0].process(doubleSamples, filteredA, desiredDoubleArraySize / numChannels);
                 filters[1].process(doubleSamples, filteredB, desiredDoubleArraySize / numChannels);
                 filters[2].process(doubleSamples, filteredC, desiredDoubleArraySize / numChannels);
@@ -162,10 +166,16 @@ public class Player {
                 filters[4].process(doubleSamples, filteredE, desiredDoubleArraySize / numChannels);
                 filters[5].process(doubleSamples, filteredF, desiredDoubleArraySize / numChannels);
 
-                float[] output = new float[desiredDoubleArraySize / numChannels];
+                Amp[0].amplify(filteredA, desiredDoubleArraySize / numChannels);
+                Amp[1].amplify(filteredB, desiredDoubleArraySize / numChannels);
+                Amp[2].amplify(filteredC, desiredDoubleArraySize / numChannels);
+                Amp[3].amplify(filteredD, desiredDoubleArraySize / numChannels);
+                Amp[4].amplify(filteredE, desiredDoubleArraySize / numChannels);
+                Amp[5].amplify(filteredF, desiredDoubleArraySize / numChannels);
 
-                output = ap.amplify(filteredA, filteredB, filteredC, filteredD, filteredE, filteredF);
-
+                for(pos = 0; pos < desiredDoubleArraySize / numChannels; pos++) {
+                    output[pos]= filteredA[pos] + filteredB[pos] + filteredC[pos] + filteredD[pos] + filteredE[pos] + filteredF[pos];
+                }
                 mAt.write(output, 0, desiredDoubleArraySize / numChannels, AudioTrack.WRITE_BLOCKING);
 
                 mCodec.releaseOutputBuffer(index, false);
