@@ -10,6 +10,7 @@ import android.media.MediaCodecList;
 import android.media.MediaExtractor;
 import android.media.MediaFormat;
 import android.net.Uri;
+import android.widget.Switch;
 
 import androidx.annotation.NonNull;
 
@@ -32,7 +33,7 @@ public class Player {
     short[] shortArray;
 
     private IIRFilter[] filters = new IIRFilter[NUM_BANDS];
-    private Amplifier[] Amp = new Amplifier[NUM_BANDS];
+    private Amplifier[] amp = new Amplifier[NUM_BANDS];
     AudioTrack mAt;
     private MediaCodec mCodec;
 
@@ -59,12 +60,12 @@ public class Player {
     }
 
     @SuppressLint("NewApi")
-    public void initialize(Uri uri, Context context, int[] audiogram) throws IOException {
+    public void initialize(Uri uri, Context context, int[] audiogram, Switch onSwitch) throws IOException {
         stop();
         int[] Pl = {10, 6, 4, 4, -5, 16};
 
         for(int num_amp = 0; num_amp < NUM_BANDS; num_amp++){
-            Amp[num_amp] = new Amplifier(96,1.5f,16,0.9f,Pl[num_amp], audiogram[num_amp]);
+            amp[num_amp] = new Amplifier(96,1.5f,16,0.9f,Pl[num_amp], audiogram[num_amp]);
         }
 
         FileDescriptor mFd = context.getContentResolver().openFileDescriptor(uri, "r").getFileDescriptor();
@@ -166,12 +167,14 @@ public class Player {
                 filters[4].process(doubleSamples, filteredE, desiredDoubleArraySize / numChannels);
                 filters[5].process(doubleSamples, filteredF, desiredDoubleArraySize / numChannels);
 
-                Amp[0].amplify(filteredA, desiredDoubleArraySize / numChannels);
-                Amp[1].amplify(filteredB, desiredDoubleArraySize / numChannels);
-                Amp[2].amplify(filteredC, desiredDoubleArraySize / numChannels);
-                Amp[3].amplify(filteredD, desiredDoubleArraySize / numChannels);
-                Amp[4].amplify(filteredE, desiredDoubleArraySize / numChannels);
-                Amp[5].amplify(filteredF, desiredDoubleArraySize / numChannels);
+                if (onSwitch.isChecked()) {
+                    amp[0].amplify(filteredA, desiredDoubleArraySize / numChannels);
+                    amp[1].amplify(filteredB, desiredDoubleArraySize / numChannels);
+                    amp[2].amplify(filteredC, desiredDoubleArraySize / numChannels);
+                    amp[3].amplify(filteredD, desiredDoubleArraySize / numChannels);
+                    amp[4].amplify(filteredE, desiredDoubleArraySize / numChannels);
+                    amp[5].amplify(filteredF, desiredDoubleArraySize / numChannels);
+                }
 
                 for(pos = 0; pos < desiredDoubleArraySize / numChannels; pos++) {
                     output[pos]= filteredA[pos] + filteredB[pos] + filteredC[pos] + filteredD[pos] + filteredE[pos] + filteredF[pos];

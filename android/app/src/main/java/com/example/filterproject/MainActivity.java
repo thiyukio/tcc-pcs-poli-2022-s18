@@ -7,9 +7,11 @@ import androidx.core.app.ActivityCompat;
 
 import android.Manifest;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.net.Uri;
 
@@ -48,7 +50,8 @@ public class MainActivity extends AppCompatActivity {
 
     public void playAudio(Uri uri, int[] audiogram) {
         try {
-            mPlayer.initialize(uri, getApplicationContext(), audiogram);
+            Switch onSwitch = findViewById(R.id.switch1);
+            mPlayer.initialize(uri, getApplicationContext(), audiogram, onSwitch);
             mPlayer.start();
             stopButton.setVisibility(View.VISIBLE);
             for (int i=0; i < Player.NUM_BANDS; i++) {
