@@ -9,6 +9,7 @@ import android.Manifest;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import android.net.Uri;
 
@@ -31,29 +32,30 @@ public class MainActivity extends AppCompatActivity {
     Player mPlayer = new Player();
 
     FloatingActionButton pickAFileButton;
+    ImageButton stopButton;
     Button[] plusButton = new Button[Player.NUM_BANDS];
     Button[] minusButton = new Button[Player.NUM_BANDS];
-    float value250 = 0;
     int[] audiogram = { 0, 0, 0, 0, 0, 0 };
 
     ActivityResultLauncher<String> mGetContent = registerForActivityResult(
 
             new ActivityResultContracts.GetContent(),
             uri -> {
-
                 this.file = new File(uri.getPath());
-                playWav(uri, audiogram);
-                String message = String.format(
-                        "Reproduzindo %s com valor %s",
-                        this.file.getPath(), this.audiogram);
-
-                binding.sampleText.setText(message);
+                playAudio(uri, audiogram);
+                binding.sampleText.setText("Reproduzindo!");
             });
 
-    public void playWav(Uri uri, int[] audiogram) {
+    public void playAudio(Uri uri, int[] audiogram) {
         try {
             mPlayer.initialize(uri, getApplicationContext(), audiogram);
             mPlayer.start();
+            stopButton.setVisibility(View.VISIBLE);
+            for (int i=0; i < Player.NUM_BANDS; i++) {
+                plusButton[i].setEnabled(false);
+
+                minusButton[i].setEnabled(false);
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -67,6 +69,8 @@ public class MainActivity extends AppCompatActivity {
         setContentView(binding.getRoot());
 
         pickAFileButton = binding.pickAFileButton;
+        stopButton = binding.stopButton;
+        stopButton.setVisibility(View.GONE);
 
         plusButton[0] = binding.plusButtonA;
         minusButton[0] = binding.minusButtonA;
@@ -82,6 +86,7 @@ public class MainActivity extends AppCompatActivity {
         minusButton[5] = binding.minusButtonF;
 
 
+        updateAudiogram();
         for (int i=0; i < Player.NUM_BANDS; i++) {
             int finalI = i;
             plusButton[i].setOnClickListener(v -> {
@@ -101,6 +106,17 @@ public class MainActivity extends AppCompatActivity {
             mGetContent.launch("audio/*");
         });
 
+        stopButton.setOnClickListener(v -> {
+            mPlayer.stop();
+            stopButton.setVisibility(View.GONE);
+            for (int i=0; i < Player.NUM_BANDS; i++) {
+                plusButton[i].setEnabled(true);
+
+                minusButton[i].setEnabled(true);
+            }
+            binding.sampleText.setText("Selecione uma música!");
+        });
+
         // Example of a call to a native method
         TextView tv = binding.sampleText;
         ActivityCompat.requestPermissions(MainActivity.this,
@@ -110,12 +126,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void updateAudiogram() {
-        binding.valueA.setText(String.valueOf(audiogram[0]));
-        binding.valueB.setText(String.valueOf(audiogram[1]));
-        binding.valueC.setText(String.valueOf(audiogram[2]));
-        binding.valueD.setText(String.valueOf(audiogram[3]));
-        binding.valueE.setText(String.valueOf(audiogram[4]));
-        binding.valueF.setText(String.valueOf(audiogram[5]));
+        binding.valueA.setText(String.format("%s dB", String.valueOf(audiogram[0])));
+        binding.valueB.setText(String.format("%s dB", String.valueOf(audiogram[1])));
+        binding.valueC.setText(String.format("%s dB", String.valueOf(audiogram[2])));
+        binding.valueD.setText(String.format("%s dB", String.valueOf(audiogram[3])));
+        binding.valueE.setText(String.format("%s dB", String.valueOf(audiogram[4])));
+        binding.valueF.setText(String.format("%s dB", String.valueOf(audiogram[5])));
     }
 
     /**

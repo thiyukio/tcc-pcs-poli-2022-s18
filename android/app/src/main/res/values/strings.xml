@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Filter project</string>
+    <string name="app_name">Audibilidade</string>
     <string name="freqA">250Hz</string>
     <string name="freqB">500Hz</string>
     <string name="freqC">1kHz</string>
