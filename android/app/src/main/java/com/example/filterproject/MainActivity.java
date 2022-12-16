@@ -6,6 +6,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
 import android.Manifest;
+import android.content.Context;
+import android.media.AudioManager;
+import android.media.VolumeProvider;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -48,21 +51,7 @@ public class MainActivity extends AppCompatActivity {
                 binding.sampleText.setText("Reproduzindo!");
             });
 
-    public void playAudio(Uri uri, int[] audiogram) {
-        try {
-            Switch onSwitch = findViewById(R.id.switch1);
-            mPlayer.initialize(uri, getApplicationContext(), audiogram, onSwitch);
-            mPlayer.start();
-            stopButton.setVisibility(View.VISIBLE);
-            for (int i=0; i < Player.NUM_BANDS; i++) {
-                plusButton[i].setEnabled(false);
-
-                minusButton[i].setEnabled(false);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
+    float volume;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -87,6 +76,8 @@ public class MainActivity extends AppCompatActivity {
         minusButton[4] = binding.minusButtonE;
         plusButton[5] = binding.plusButtonF;
         minusButton[5] = binding.minusButtonF;
+
+
 
 
         updateAudiogram();
@@ -126,6 +117,21 @@ public class MainActivity extends AppCompatActivity {
                 new String[] { Manifest.permission.READ_EXTERNAL_STORAGE },
                 1);
 
+    }
+    public void playAudio(Uri uri, int[] audiogram) {
+        try {
+            Switch onSwitch = findViewById(R.id.switch1);
+            mPlayer.initialize(uri, getApplicationContext(), audiogram, onSwitch);
+            mPlayer.start();
+            stopButton.setVisibility(View.VISIBLE);
+            for (int i=0; i < Player.NUM_BANDS; i++) {
+                plusButton[i].setEnabled(false);
+
+                minusButton[i].setEnabled(false);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public void updateAudiogram() {

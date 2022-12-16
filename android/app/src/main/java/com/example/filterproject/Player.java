@@ -4,12 +4,14 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.media.AudioAttributes;
 import android.media.AudioFormat;
+import android.media.AudioManager;
 import android.media.AudioTrack;
 import android.media.MediaCodec;
 import android.media.MediaCodecList;
 import android.media.MediaExtractor;
 import android.media.MediaFormat;
 import android.net.Uri;
+import android.util.Log;
 import android.widget.Switch;
 
 import androidx.annotation.NonNull;
@@ -167,13 +169,18 @@ public class Player {
                 filters[4].process(doubleSamples, filteredE, desiredDoubleArraySize / numChannels);
                 filters[5].process(doubleSamples, filteredF, desiredDoubleArraySize / numChannels);
 
+                AudioManager am = (AudioManager)  context.getSystemService(context.AUDIO_SERVICE);
+                int volumeLevel = am.getStreamVolume(AudioManager.STREAM_MUSIC);
+                int maxVolumeLevel = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+                float volume = ((float) volumeLevel / maxVolumeLevel);
+
                 if (onSwitch.isChecked()) {
-                    amp[0].amplify(filteredA, desiredDoubleArraySize / numChannels);
-                    amp[1].amplify(filteredB, desiredDoubleArraySize / numChannels);
-                    amp[2].amplify(filteredC, desiredDoubleArraySize / numChannels);
-                    amp[3].amplify(filteredD, desiredDoubleArraySize / numChannels);
-                    amp[4].amplify(filteredE, desiredDoubleArraySize / numChannels);
-                    amp[5].amplify(filteredF, desiredDoubleArraySize / numChannels);
+                    amp[0].amplify(filteredA, desiredDoubleArraySize / numChannels, volume);
+                    amp[1].amplify(filteredB, desiredDoubleArraySize / numChannels, volume);
+                    amp[2].amplify(filteredC, desiredDoubleArraySize / numChannels, volume);
+                    amp[3].amplify(filteredD, desiredDoubleArraySize / numChannels, volume);
+                    amp[4].amplify(filteredE, desiredDoubleArraySize / numChannels, volume);
+                    amp[5].amplify(filteredF, desiredDoubleArraySize / numChannels, volume);
                 }
 
                 for(pos = 0; pos < desiredDoubleArraySize / numChannels; pos++) {
