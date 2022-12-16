@@ -77,11 +77,8 @@ public class MainActivity extends AppCompatActivity {
         plusButton[5] = binding.plusButtonF;
         minusButton[5] = binding.minusButtonF;
 
-
-
-
         updateAudiogram();
-        for (int i=0; i < Player.NUM_BANDS; i++) {
+        for (int i = 0; i < Player.NUM_BANDS; i++) {
             int finalI = i;
             plusButton[i].setOnClickListener(v -> {
                 audiogram[finalI] += 1;
@@ -103,7 +100,7 @@ public class MainActivity extends AppCompatActivity {
         stopButton.setOnClickListener(v -> {
             mPlayer.stop();
             stopButton.setVisibility(View.GONE);
-            for (int i=0; i < Player.NUM_BANDS; i++) {
+            for (int i = 0; i < Player.NUM_BANDS; i++) {
                 plusButton[i].setEnabled(true);
 
                 minusButton[i].setEnabled(true);
@@ -118,13 +115,14 @@ public class MainActivity extends AppCompatActivity {
                 1);
 
     }
+
     public void playAudio(Uri uri, int[] audiogram) {
         try {
             Switch onSwitch = findViewById(R.id.switch1);
             mPlayer.initialize(uri, getApplicationContext(), audiogram, onSwitch);
             mPlayer.start();
             stopButton.setVisibility(View.VISIBLE);
-            for (int i=0; i < Player.NUM_BANDS; i++) {
+            for (int i = 0; i < Player.NUM_BANDS; i++) {
                 plusButton[i].setEnabled(false);
 
                 minusButton[i].setEnabled(false);
